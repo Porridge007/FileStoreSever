@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -49,7 +50,6 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		newFile.Seek(0, 0)
 		fileMeta.FileSha1 = util.FileSha1(newFile)
-		fmt.Println(fileMeta)
 		meta.UpdateFileMeta(fileMeta)
 		http.Redirect(w, r, "/file/upload/suc", http.StatusFound)
 	}
@@ -66,6 +66,19 @@ func GetFileMetaHandler(w http.ResponseWriter, r *http.Request) {
 	filehash := r.Form["filehash"][0]
 	fMeta := meta.GetFileMeta(filehash)
 	data, err := json.Marshal(fMeta)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Write(data)
+}
+
+// Query multiple file meta information
+func FileQueryHandler(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	limitCnt, _ := strconv.Atoi(r.Form.Get("limit"))
+	fileMetas := meta.GetLastFileMetas(limitCnt)
+	data, err := json.Marshal(fileMetas)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
