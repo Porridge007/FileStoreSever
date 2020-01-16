@@ -34,7 +34,7 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 		fileMeta := meta.FileMeta{
 			FileName: head.Filename,
 			Location: "../../../Storage/" + head.Filename,
-			UploadAt: time.Now().Format("2016-01-02 15:06:07"),
+			UploadAt: time.Now().Format("2006-01-02 15:04:05"),
 		}
 
 		newFile, err := os.Create("../../../Storage/" + fileMeta.Location)
@@ -83,5 +83,26 @@ func FileQueryHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	w.Write(data)
+}
+
+func DownloadHandler(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	fsha1 := r.Form.Get("filehash")
+	fm := meta.GetFileMeta(fsha1)
+	f,err :=os.Open(fm.Location)
+	if err!=nil{
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer f.Close()
+
+	data,err :=ioutil.ReadAll(f)
+	if err != nil{
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type","application/octect-stream")
+	w.Header().Set("Content-Disposition","attachment;filename=\""+fm.FileName+"\"")
 	w.Write(data)
 }
