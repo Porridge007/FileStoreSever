@@ -107,6 +107,8 @@ func DownloadHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
+
+//To update file. If opType ="0", you can rename files.
 func FileMetaUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 
@@ -138,6 +140,7 @@ func FileMetaUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
+//To delete file.
 func FileDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	FileSha1 := r.Form.Get("filehash")
