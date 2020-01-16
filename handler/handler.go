@@ -37,7 +37,7 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 			UploadAt: time.Now().Format("2006-01-02 15:04:05"),
 		}
 
-		newFile, err := os.Create("../../../Storage/" + fileMeta.Location)
+		newFile, err := os.Create(fileMeta.Location)
 		if err != nil {
 			fmt.Println("Failed to create file, err:", err.Error())
 			return
@@ -90,19 +90,64 @@ func DownloadHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	fsha1 := r.Form.Get("filehash")
 	fm := meta.GetFileMeta(fsha1)
-	f,err :=os.Open(fm.Location)
-	if err!=nil{
+	f, err := os.Open(fm.Location)
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	defer f.Close()
 
-	data,err :=ioutil.ReadAll(f)
-	if err != nil{
+	data, err := ioutil.ReadAll(f)
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	w.Header().Set("Content-Type","application/octect-stream")
-	w.Header().Set("Content-Disposition","attachment;filename=\""+fm.FileName+"\"")
+	w.Header().Set("Content-Type", "application/octect-stream")
+	w.Header().Set("Content-Disposition", "attachment;filename=\""+fm.FileName+"\"")
 	w.Write(data)
+}
+
+func FileMetaUpdateHandler(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+
+	opType := r.Form.Get("op")
+	fileSha1 := r.Form.Get("filehash")
+	newFileName := r.Form.Get("filename")
+
+	if opType != "0" {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
+	if r.Method != "POST" {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	curFileMeta := meta.GetFileMeta(fileSha1)
+	curFileMeta.FileName = newFileName
+	meta.UpdateFileMeta(curFileMeta)
+
+	w.WriteHeader(http.StatusOK)
+	data, err := json.Marshal(curFileMeta)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
+}
+
+func FileDeleteHandler(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	FileSha1 := r.Form.Get("filehash")
+
+	fMeta := meta.GetFileMeta(FileSha1)
+	err := os.Remove(fMeta.Location)
+	if err != nil {
+		fmt.Println("Failed to remove file: ", fMeta.FileName)
+	}
+
+	meta.RemoveFileMeta(FileSha1)
+	w.WriteHeader(http.StatusOK)
 }
