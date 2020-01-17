@@ -1,7 +1,7 @@
 ## 这是什么
 这是使用go语言写的文件存储管理系统
 ## 关于需要手动安装的库
-暂无
+    go get github.com/go-sql-driver/mysql
 ## 使用文档
 1.将FileStoreServer移入$GOPATH<br>
 2.执行go run main.go
@@ -14,7 +14,7 @@
 ## What's this?
 This is a File Store Server written in Golang.
 ## What's to go get?
-Null.
+    go get github.com/go-sql-driver/mysql
 ## How to start it?
 1.Move Project File to your $Gopath<br>
 2.go run main.go

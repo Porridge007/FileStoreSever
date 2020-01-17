@@ -1,6 +1,9 @@
 package meta
 
-import "sort"
+import (
+	mydb "FileStoreSever/db"
+	"sort"
+)
 
 // FileMeta: File meta information structure
 type FileMeta struct {
@@ -20,6 +23,12 @@ func init() {
 // Add/update File metas
 func UpdateFileMeta(fmeta FileMeta) {
 	fileMetas[fmeta.FileSha1] = fmeta
+}
+
+// add or update file saving into mysql
+func UpdateFileMetaDB(fmeta FileMeta) bool {
+	return mydb.OnFileUploadFinished(
+		fmeta.FileSha1, fmeta.FileName, fmeta.FileSize, fmeta.Location)
 }
 
 // Get File Meta from sha1
