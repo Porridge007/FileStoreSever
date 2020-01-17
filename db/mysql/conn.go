@@ -5,6 +5,7 @@ import (
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"os"
+	"github.com/spf13/viper"
 )
 
 var db *sql.DB
@@ -22,4 +23,9 @@ func init() {
 // return database connection object
 func DBConn() *sql.DB{
 	return db
+}
+
+func GetDBString() string{
+	viper.SetConfigName("config")
+	viper.AddConfigPath("")
 }
