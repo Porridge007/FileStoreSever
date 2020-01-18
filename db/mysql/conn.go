@@ -1,17 +1,18 @@
 package mysql
 
 import (
+	"FileStoreSever/util"
+	"bytes"
 	"database/sql"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"os"
-	"github.com/spf13/viper"
 )
 
 var db *sql.DB
 
 func init() {
-	db,_ = sql.Open("mysql", "root:123456@tcp(192.168.1.95:3306)/fileserver?charset=utf8")
+	db,_ = sql.Open("mysql", GetConnString())
 	db.SetMaxOpenConns(1000)
 	err := db.Ping()
 	if err != nil {
@@ -25,7 +26,26 @@ func DBConn() *sql.DB{
 	return db
 }
 
-func GetDBString() string{
-	viper.SetConfigName("config")
-	viper.AddConfigPath("")
+//Create config/config.json like this:
+//{
+//  "mysql": {
+//    "url": "192.168.1.95:3306",
+//    "username": "root",
+//    "password": "123456"
+//  }
+//}
+
+func GetConnString() string{
+	// sql.Open("mysql", "root:123456@tcp(192.168.1.95:3306)/fileserver?charset=utf8")
+	username := util.GetConfig("mysql.username").(string)
+	password := util.GetConfig("mysql.password").(string)
+	url := util.GetConfig("mysql.url").(string)
+	var connString bytes.Buffer
+	connString.WriteString(username)
+	connString.WriteString(":")
+	connString.WriteString(password)
+	connString.WriteString("@tcp(")
+	connString.WriteString(url)
+	connString.WriteString(")/fileserver?charset=utf8")
+	return connString.String()
 }
