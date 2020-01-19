@@ -36,6 +36,23 @@ func GetFileMeta(fileSha1 string) FileMeta {
 	return fileMetas[fileSha1]
 }
 
+// Get meta info from mysql
+func GetFileMetaDB(fileSha1 string) (FileMeta, error) {
+	tfile, err := mydb.GetFileMeta(fileSha1)
+	if err != nil {
+		return FileMeta{}, err
+	}
+
+	// todo: Convert tfile should check it valid
+	fmeta := FileMeta{
+		FileSha1: tfile.FileHash,
+		FileName: tfile.FileName.String,
+		FileSize: tfile.FileSize.Int64,
+		Location: tfile.FileAddr.String,
+	}
+	return fmeta, nil
+}
+
 //Get multiple file meta information
 func GetLastFileMetas(count int) []FileMeta {
 	var fMetaArray []FileMeta
