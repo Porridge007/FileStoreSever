@@ -30,8 +30,8 @@ func SignUpHandler(w http.ResponseWriter, r *http.Request)  {
 		w.Write([]byte("Invalid parameter"))
 		return
 	}
-	enc_passwd := util.Sha1([]byte(passwd+pwdSalt))
-	suc := dblayer.UserSignUp(username, enc_passwd)
+	encPasswd := util.Sha1([]byte(passwd+pwdSalt))
+	suc := dblayer.UserSignUp(username, encPasswd)
 	if suc{
 		w.Write([]byte("SUCCESS"))
 	}else {
