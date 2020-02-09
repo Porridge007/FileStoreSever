@@ -11,6 +11,7 @@ import (
 	"os"
 	"strconv"
 	"time"
+	"FileStoreSever/db"
 )
 
 // handle upload file
@@ -52,6 +53,15 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 		fileMeta.FileSha1 = util.FileSha1(newFile)
 		//meta.UpdateFileMeta(fileMeta)
 		_ = meta.UpdateFileMetaDB(fileMeta)
+		r.ParseForm()
+		username := r.Form.Get("username")
+		suc := db.OnUserFileUploadFinished(username, fileMeta.FileSha1,
+			fileMeta.FileName, fileMeta.FileSize)
+		if suc {
+			http.Redirect(w, r, "/static/view/home.html", http.StatusFound)
+		} else {
+			w.Write([]byte("Upload Failed."))
+		}
 		http.Redirect(w, r, "/file/upload/suc", http.StatusFound)
 	}
 }
