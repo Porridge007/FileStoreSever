@@ -99,12 +99,12 @@ func UserInfoHandler(w http.ResponseWriter, r *http.Request) {
 	// 1. parse request params
 	r.ParseForm()
 	username := r.Form.Get("username")
-	token := r.Form.Get("token")
+	//token := r.Form.Get("token")
 	// 2. check the toke
-	if !IsTokenValid(token) {
-		w.WriteHeader(http.StatusForbidden)
-		return
-	}
+	//if !IsTokenValid(token) {
+	//	w.WriteHeader(http.StatusForbidden)
+	//	return
+	//}
 	// 3. query user info
 	user, err := dblayer.GetUserInfo(username)
 	if err != nil {
