@@ -87,8 +87,7 @@
 
     function updateFileList() {
         $.ajax({
-            // url: "/file/query?" + queryParams(),
-            url:"",
+            url: "/file/query?" + queryParams(),
             type: "POST",
             data: {
                 limit: 15
