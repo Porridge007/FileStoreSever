@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"FileStoreSever/meta"
-	"FileStoreSever/util"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,13 +9,16 @@ import (
 	"os"
 	"strconv"
 	"time"
-	"FileStoreSever/db"
+
+	dblayer "FileStoreSever/db"
+	"FileStoreSever/meta"
+	"FileStoreSever/util"
 )
 
-// handle upload file
+// UploadHandler ： 处理文件上传
 func UploadHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-		//return upload html
+		// 返回上传html页面
 		data, err := ioutil.ReadFile("./static/view/index.html")
 		if err != nil {
 			io.WriteString(w, "internel server error")
@@ -25,13 +26,14 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		io.WriteString(w, string(data))
 	} else if r.Method == "POST" {
-		//restore stream-file to local storage
+		// 接收文件流及存储到本地目录
 		file, head, err := r.FormFile("file")
 		if err != nil {
-			fmt.Println("Failed to get data, err:", err.Error())
+			fmt.Printf("Failed to get data, err:%s\n", err.Error())
 			return
 		}
 		defer file.Close()
+
 		fileMeta := meta.FileMeta{
 			FileName: head.Filename,
 			Location: util.GetConfig("storeLocation").(string) + head.Filename,
@@ -40,22 +42,25 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		newFile, err := os.Create(fileMeta.Location)
 		if err != nil {
-			fmt.Println("Failed to create file, err:", err.Error())
+			fmt.Printf("Failed to create file, err:%s\n", err.Error())
 			return
 		}
 		defer newFile.Close()
+
 		fileMeta.FileSize, err = io.Copy(newFile, file)
 		if err != nil {
-			fmt.Println("Failed to save data into file, err:", err.Error())
+			fmt.Printf("Failed to save data into file, err:%s\n", err.Error())
 			return
 		}
+
 		newFile.Seek(0, 0)
 		fileMeta.FileSha1 = util.FileSha1(newFile)
-		//meta.UpdateFileMeta(fileMeta)
+		// TODO: 处理异常情况，比如跳转到一个上传失败页面
 		_ = meta.UpdateFileMetaDB(fileMeta)
+
 		r.ParseForm()
 		username := r.Form.Get("username")
-		suc := db.OnUserFileUploadFinished(username, fileMeta.FileSha1,
+		suc := dblayer.OnUserFileUploadFinished(username, fileMeta.FileSha1,
 			fileMeta.FileName, fileMeta.FileSize)
 		if suc {
 			http.Redirect(w, r, "/static/view/home.html", http.StatusFound)
@@ -65,21 +70,22 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// UploadSucHandler : 上传已完成
 func UploadSucHandler(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "Upload finished!")
 }
 
-// Get file meta info
+// GetFileMetaHandler : 获取文件元信息
 func GetFileMetaHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 
 	filehash := r.Form["filehash"][0]
-	//fMeta := meta.GetFileMeta(filehash)
 	fMeta, err := meta.GetFileMetaDB(filehash)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
 	data, err := json.Marshal(fMeta)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -88,17 +94,18 @@ func GetFileMetaHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-// Query multiple file meta information
+// FileQueryHandler : 查询批量的文件元信息
 func FileQueryHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
+
 	limitCnt, _ := strconv.Atoi(r.Form.Get("limit"))
-	//fileMetas := meta.GetLastFileMetas(limitCnt)
 	username := r.Form.Get("username")
-	userFiles, err := db.QueryUserFileMetas(username, limitCnt)
-	if err != nil{
+	userFiles, err := dblayer.QueryUserFileMetas(username, limitCnt)
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
 	data, err := json.Marshal(userFiles)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -107,51 +114,34 @@ func FileQueryHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-func DownloadHandler(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
-	fsha1 := r.Form.Get("filehash")
-	fm := meta.GetFileMeta(fsha1)
-	f, err := os.Open(fm.Location)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	defer f.Close()
-
-	data, err := ioutil.ReadAll(f)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/octect-stream")
-	w.Header().Set("Content-Disposition", "attachment;filename=\""+fm.FileName+"\"")
-	w.Write(data)
-}
-
-//To update file. If opType ="0", you can rename files.
+// FileMetaUpdateHandler ： 更新元信息接口(重命名)
 func FileMetaUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 
 	opType := r.Form.Get("op")
 	fileSha1 := r.Form.Get("filehash")
+	username := r.Form.Get("username")
 	newFileName := r.Form.Get("filename")
 
-	if opType != "0" {
+	if opType != "0" || len(newFileName) < 1 {
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
-
 	if r.Method != "POST" {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
 
-	curFileMeta := meta.GetFileMeta(fileSha1)
-	curFileMeta.FileName = newFileName
-	meta.UpdateFileMeta(curFileMeta)
+	// 更新用户文件表tbl_user_file中的文件名，tbl_file的文件名不用修改
+	_ = dblayer.RenameFileName(username, fileSha1, newFileName)
 
-	w.WriteHeader(http.StatusOK)
-	data, err := json.Marshal(curFileMeta)
+	// 返回最新的文件信息
+	userFile, err := dblayer.QueryUserFileMeta(username, fileSha1)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	data, err := json.Marshal(userFile)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -160,21 +150,30 @@ func FileMetaUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-//To delete file.
+// FileDeleteHandler : 删除文件及元信息
 func FileDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
-	FileSha1 := r.Form.Get("filehash")
+	username := r.Form.Get("username")
+	fileSha1 := r.Form.Get("filehash")
 
-	fMeta := meta.GetFileMeta(FileSha1)
-	err := os.Remove(fMeta.Location)
+	// 删除本地文件
+	fm, err := meta.GetFileMetaDB(fileSha1)
 	if err != nil {
-		fmt.Println("Failed to remove file: ", fMeta.FileName)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
+	os.Remove(fm.Location)
 
-	meta.RemoveFileMeta(FileSha1)
+	// 删除文件表中的一条记录
+	suc := dblayer.DeleteUserFile(username, fileSha1)
+	if !suc {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	w.WriteHeader(http.StatusOK)
 }
 
+// TryFastUploadHandler : 尝试秒传接口
 func TryFastUploadHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 
@@ -203,7 +202,7 @@ func TryFastUploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 4. 上传过则将文件信息写入用户文件表， 返回成功
-	suc := db.OnUserFileUploadFinished(
+	suc := dblayer.OnUserFileUploadFinished(
 		username, filehash, filename, int64(filesize))
 	if suc {
 		resp := util.RespMsg{
