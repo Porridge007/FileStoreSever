@@ -8,7 +8,7 @@
     > 2.git clone https://github.com/golang/text.git
     > 3.go install -x  golang.org/x/text
     go get github.com/garyburd/redigo/redis
-## 使用文档
+    go get github.com/json-iterator/go
 1.将FileStoreServer移入$GOPATH<br>
 2.在mysql中执行db/tables.sql
 3.执行go run main.go
@@ -31,6 +31,7 @@ This is a File Store Server written in Golang.
         > 2.git clone https://github.com/golang/text.git
         > 3.go install -x  golang.org/x/text
     go get github.com/garyburd/redigo/redis
+    go get github.com/json-iterator/go
 ## How to start it?
 1.Move Project File to your $Gopath<br>
 2.Execute sql in doc/tables.sql in Mysql.
