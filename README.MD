@@ -7,6 +7,7 @@
     > 1.cd  ${gopath}/src/golang.org/x
     > 2.git clone https://github.com/golang/text.git
     > 3.go install -x  golang.org/x/text
+    go get github.com/garyburd/redigo/redis
 ## 使用文档
 1.将FileStoreServer移入$GOPATH<br>
 2.在mysql中执行db/tables.sql
@@ -14,8 +15,10 @@
 
 ## 实现功能
 - [x] 文件管理系统的基本增删改查
-- [ ] 数据持久化
-- [ ] 用户模块、session鉴权、资源隔离
+- [x] 数据持久化
+- [x] 用户模块、session鉴权、资源隔离
+- [ ] 分块上传
+
 
 ---
 ## What's this?
@@ -27,6 +30,7 @@ This is a File Store Server written in Golang.
         > 1.cd  ${gopath}/src/golang.org/x
         > 2.git clone https://github.com/golang/text.git
         > 3.go install -x  golang.org/x/text
+    go get github.com/garyburd/redigo/redis
 ## How to start it?
 1.Move Project File to your $Gopath<br>
 2.Execute sql in doc/tables.sql in Mysql.
